@@ -18,9 +18,23 @@ def joined(message):
     join_room(room)
     emit('status', {'msg': session.get('name') + ' has entered the room.'}, room=room)
 
+def aes_encrypt():
+    key = ''.join(chr(random.randint(0, 0xFF)) for i in range(16))
+    print 'key', [x for x in key]
+    iv = ''.join([chr(random.randint(0, 0xFF)) for i in range(16)])
+    aes = AES.new(key, AES.MODE_CBC, iv)
+    data = 'hello world 1234' # <- 16 bytes
+    encd = aes.encrypt(data)
+    return encd
+
+def aes_decrypt(key, encd, iv):
+    aes = AES.new(key, AES.MODE_CBC, iv)
+    decd = aes.decrypt(encd)
+    return decd
 
 @socketio.on('text', namespace='/chat')
 def text(message):
+    print(aes_encrypt())
     """Sent by a client when the user entered a new message.
     The message is sent to all people in the room."""
     room = session.get('room')
@@ -31,8 +45,6 @@ def text(message):
     enc_msg = aes_encrypt(key, b'test')
     emit('enc_msg', {'msg': enc_msg}, room=room)
     emit('message', {'msg': session.get('name') + ':' + message['msg']}, room=room)
-
-
 
 # Encrypt + sign using provided IV.
 # Note: You should normally use aes_encrypt().
