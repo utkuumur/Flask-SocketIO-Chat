@@ -5,6 +5,7 @@
         <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/aes.js"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/components/mode-ctr.js"></script>
+        <script src="https://cdn.rawgit.com/CryptoStore/crypto-js/3.1.2/build/components/mode-cfb-min.js"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/components/pad-zeropadding.js"></script>
         <script src="http://crypto-js.googlecode.com/svn/tags/3.1/build/components/lib-typedarrays.js"></script>
         <script type="text/javascript" charset="utf-8">
@@ -18,86 +19,62 @@
                     $('#chat').val($('#chat').val() + '<' + data.msg + '>\n');
                     $('#chat').scrollTop($('#chat')[0].scrollHeight);
                 });
-                socket.on('message', function(data) {
-                    //$('#chat').val($('#chat').val() + data.msg + '\n');
-                    //$('#chat').scrollTop($('#chat')[0].scrollHeight);
-                });
+
+
+                var key = CryptoJS.enc.Utf8.parse('1234567890123456');
+                var hmacKey = CryptoJS.enc.Utf8.parse('1234567890123456');                    
+
+                function decrypt(ciphertextStr, key) {
+                    var ciphertext = CryptoJS.enc.Base64.parse(ciphertextStr);
+
+                    // split IV and ciphertext
+                    var iv = ciphertext.clone();
+                    iv.sigBytes = 16;
+                    iv.clamp();
+                    ciphertext.words.splice(0, 4); // delete 4 words = 16 bytes
+                    ciphertext.sigBytes -= 16;
+
+                    // decryption
+                    var decrypted = CryptoJS.AES.decrypt({ciphertext: ciphertext}, key, {
+                        iv: iv
+                    });
+                    return decrypted.toString(CryptoJS.enc.Utf8);
+                }
+
+                function encrypt_sign(msgString, key1, key2) {
+                    // msgString is expected to be Utf8 encoded
+                    var iv = CryptoJS.lib.WordArray.random(16);
+                    var encrypted = CryptoJS.AES.encrypt(msgString, key1, {
+                        iv: iv
+                    });
+
+                    var concat = iv + encrypted.ciphertext;
+                    var hash = CryptoJS.HmacSHA256(CryptoJS.enc.Hex.parse(concat), key2);
+                    var registrationKey = iv + encrypted.ciphertext + hash;
+                    return CryptoJS.enc.Hex.parse(registrationKey).toString(CryptoJS.enc.Base64)
+                    //return iv.concat(encrypted.ciphertext).toString(CryptoJS.enc.Base64);
+                }
+
+
+
                 $('#text').keypress(function(e) {
                     var code = e.keyCode || e.which;
                     if (code == 13) {
                         text = $('#text').val();
                         $('#text').val('');
-                        socket.emit('text', {msg: text});
+                        socket.emit('text', {msg: encrypt(text,key)});
                     }
                 });
 
-
-                function arrayBufferToWordArray(ab) {
-                  var i8a = new Uint8Array(ab);
-                  var a = [];
-                  for (var i = 0; i < i8a.length; i += 4) {
-                    a.push(i8a[i] << 24 | i8a[i + 1] << 16 | i8a[i + 2] << 8 | i8a[i + 3]);
-                  }
-                  return CryptoJS.lib.WordArray.create(a, i8a.length);
-                }
-                socket.on('enc_msg', function(data) {
-                    console.log(data)
-                    //var wordArray = CryptoJS.lib.WordArray.create(arrayBuffer);
+                socket.on('message', function(data) {
                     var cipher =  data['cipher'];
-                    var key = data['key'];
-                    var iv = data['iv'];
+                    //var key = data['key'];
+                    //key = CryptoJS.enc.Hex.parse(data['key'])
+                    dec = decrypt(cipher,key)
 
-
-                    var i = new Uint16Array(key)[0];
-                    console.log(i)
-
-
-                    //console.log(cipher)
-                    _cipher = arrayBufferToWordArray(cipher)
-                    _key = arrayBufferToWordArray(key)
-                    console.log(_key)
-                    _iv = arrayBufferToWordArray(iv)
-
-                    console.log(_cipher)
-                    console.log(_key)
-                    console.log(_iv)
-                    /*
-                    var key = "0000000000000000"
-
-                    
-                    var iv = "00000000"
-                    
-                    var _data = byteArrayToWordArray(cipher);
-
-                    var _key = byteArrayToWordArray(key);
-                    var _iv = CryptoJS.enc.Hex.parse(iv);
-
-
-                    console.log(_data)
-                    console.log(_key)
-                    console.log(_iv)
-                    
-                    encrypted = CryptoJS.AES.encrypt(
-                      data, //If I pass WordArray here, chrome frozen, not sure what formate of data should be here. I saw an example using Utf8, but my hex failed to transfer to Utf8 
-                      _key,  // pass WordArray
-                      {iv: _iv, // pass WordArray
-                       mode: CryptoJS.mode.CTR,
-                       padding: CryptoJS.pad.ZeroPadding
-                     })
-
-
-                    console.log(encrypted.ciphertext.toString())
-                    
-                       */             
-                    decrypted = CryptoJS.AES.decrypt(
-                      _cipher, //If I pass WordArray here, chrome frozen, not sure what formate of data should be here. I saw an example using Utf8, but my hex failed to transfer to Utf8 
-                      _key,  // pass WordArray
-                      {iv: _iv
-                     })
-
-                    console.log(decrypted.toString(CryptoJS.enc.Utf8))
-                    
-                    
+                    $('#chat').val($('#chat').val() + data.msg + ':'+ dec + '\n');
+                    $('#chat').scrollTop($('#chat')[0].scrollHeight);
+                    console.log(dec)
                 });
 
             });

@@ -2,8 +2,13 @@ from flask import session
 from flask_socketio import emit, join_room, leave_room
 import random
 from Crypto.Cipher import AES
+from Crypto import Random
+from Crypto.Hash import HMAC, SHA256
 import os
+import base64
 from .. import socketio
+
+BLOCK_SIZE = 128 // 8
 
 
 @socketio.on('joined', namespace='/chat')
@@ -14,41 +19,76 @@ def joined(message):
     join_room(room)
     emit('status', {'msg': session.get('name') + ' has entered the room.'}, room=room)
 
-def aes_encrypt(key, data, iv):
-    aes = AES.new(key, AES.MODE_CBC, iv)
-    encd = aes.encrypt(data)
-    return encd
 
-def aes_decrypt(key, data, iv):
-    aes = AES.new(key, AES.MODE_CBC, iv)
-    decd = aes.decrypt(data)
-    return decd
+def pad(data):
+    length = 16 - (len(data) % 16)
+    return data + chr(length)*length
+
+def unpad(data):
+    return data[:-data[-1]]
+
+def verify_hmac(cipher,mac, hmac_key):
+    local_hash = HMAC.new(hmac_key, digestmod=SHA256)
+    local_hash.update(cipher)
+    local_digest = _hash.digest()
+
+    return SHA256.new(mac).digest() == SHA256.new(local_digest).digest()
+
+
+def aes_encrypt(key, data):
+    IV = Random.new().read(BLOCK_SIZE)
+    aes = AES.new(key, AES.MODE_CBC, IV,segment_size=128)
+    return base64.b64encode(IV + aes.encrypt(pad(data))).decode()
+
+def aes_decrypt(key, data):
+    enc = base64.b64decode(data)
+    IV = enc[:BLOCK_SIZE]
+    aes = AES.new(key, AES.MODE_CBC, IV, segment_size=128)
+    return unpad(aes.decrypt(enc[BLOCK_SIZE:])).decode()
+
+def decrypt_verify(key, data, hmac_key):
+    enc = base64.b64decode(data)
+    IV = enc[:BLOCK_SIZE]
+    hmac = enc[-32:]
+    cipher = enc[16:-32]
+
+    ver_hmac = verify_hmac((iv+cipher), hmac, hmac_key)
+
+    if ver_hmac:
+        aes = AES.new(key, AES.MODE_CBC, IV, segment_size=128)
+        return unpad(aes.decrypt(cipher)).decode()
+
 
 @socketio.on('text', namespace='/chat')
 def text(message):
     """Sent by a client when the user entered a new message.
     The message is sent to all people in the room."""
     room = session.get('room')
-    key = os.urandom(32)
-    iv = os.urandom(16)
-    data = 'hello world 1234' # <- 16 bytes
+    emit('message', {
+                     'cipher': message['msg'],
+                     'msg': session.get('name')
+                    }, room=room)
 
-    enc = aes_encrypt(key,data,iv)
-    dec = aes_decrypt(key,enc,iv)
+    '''
+    key = os.urandom(32)
+    #key = b"1234567890123456"
+    data = message['msg'] 
+    enc = aes_encrypt(key,data)
+    print(type(enc),enc)
+    dec = aes_decrypt(key,enc)
 
     print('data:',data)
     print('cipher:', enc)
-    print('plain:',dec)
-    test = os.urandom(2)
-    print('key:', int.from_bytes(test, byteorder='little'))
-    print('key', test)
+    print(data == dec)
+    print(data,dec)
+    print('key hex:',key.hex())
     
-    emit('enc_msg', {'key': test,
+    emit('message', {'key': key.hex(),
                      'cipher': enc,
-                     'iv' : iv,
+                     'msg': session.get('name')
                     }, room=room)
-    emit('message', {'msg': session.get('name') + ':' + message['msg']}, room=room)
-
+    #emit('message', {'msg': session.get('name') + ':' + message['msg']}, room=room)
+    '''
 
     
 
