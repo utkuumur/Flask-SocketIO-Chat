@@ -2,6 +2,7 @@ from flask import session
 from flask_socketio import emit, join_room, leave_room
 import random
 from Crypto.Cipher import AES
+import os
 from .. import socketio
 
 
@@ -25,8 +26,11 @@ def aes_decrypt(key, data, iv):
 
 @socketio.on('text', namespace='/chat')
 def text(message):
-    key = ''.join(chr(random.randint(0, 0xFF)) for i in range(16))
-    iv = ''.join([chr(random.randint(0, 0xFF)) for i in range(16)])
+    """Sent by a client when the user entered a new message.
+    The message is sent to all people in the room."""
+    room = session.get('room')
+    key = os.urandom(32)
+    iv = os.urandom(16)
     data = 'hello world 1234' # <- 16 bytes
 
     enc = aes_encrypt(key,data,iv)
@@ -35,9 +39,12 @@ def text(message):
     print('data:',data)
     print('cipher:', enc)
     print('plain:',dec)
-    """Sent by a client when the user entered a new message.
-    The message is sent to all people in the room."""
-    room = session.get('room')
+    
+    emit('enc_msg', {'key': key,
+                     'cipher': enc,
+                     'iv' : iv,
+                    }, room=room)
+    emit('message', {'msg': session.get('name') + ':' + message['msg']}, room=room)
 
 
     

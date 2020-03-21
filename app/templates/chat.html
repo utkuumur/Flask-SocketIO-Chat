@@ -6,6 +6,7 @@
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/aes.js"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/components/mode-ctr.js"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/components/pad-zeropadding.js"></script>
+        <script src="http://crypto-js.googlecode.com/svn/tags/3.1/build/components/lib-typedarrays.js"></script>
         <script type="text/javascript" charset="utf-8">
             var socket;
             $(document).ready(function(){
@@ -32,6 +33,17 @@
 
 
                 socket.on('enc_msg', function(data) {
+                    console.log(data)
+                    //var wordArray = CryptoJS.lib.WordArray.create(arrayBuffer);
+                    var cipher =  CryptoJS.lib.WordArray.create(data['cipher']);
+                    var key = CryptoJS.lib.WordArray.create(data['key']);
+                    var _iv = CryptoJS.lib.WordArray.create(data['iv']);
+
+
+                    console.log(cipher)
+                    console.log(key)
+                    console.log(_iv)
+
                     var data = "utku"
                     var key = "0000000000000000"
                     var iv = "00000000"
@@ -40,6 +52,11 @@
                     var _key = CryptoJS.enc.Hex.parse(key);
                     var _iv = CryptoJS.enc.Hex.parse(iv);
 
+
+                    console.log(_data)
+                    console.log(_key)
+                    console.log(_iv)
+                    /*
                     encrypted = CryptoJS.AES.encrypt(
                       data, //If I pass WordArray here, chrome frozen, not sure what formate of data should be here. I saw an example using Utf8, but my hex failed to transfer to Utf8 
                       _key,  // pass WordArray
@@ -51,18 +68,18 @@
 
                     console.log(encrypted.ciphertext.toString())
                     
-                    
+                                        
                     decrypted = CryptoJS.AES.decrypt(
-                      encrypted.toString(), //If I pass WordArray here, chrome frozen, not sure what formate of data should be here. I saw an example using Utf8, but my hex failed to transfer to Utf8 
-                      _key,  // pass WordArray
-                      {iv: _iv, // pass WordArray
+                      cipher, //If I pass WordArray here, chrome frozen, not sure what formate of data should be here. I saw an example using Utf8, but my hex failed to transfer to Utf8 
+                      key,  // pass WordArray
+                      {iv: _iv/*, // pass WordArray
                       mode: CryptoJS.mode.CTR,
-                      padding: CryptoJS.pad.ZeroPadding
+                      padding: CryptoJS.pad.ZeroPadding*//*
                      })
 
                     console.log(decrypted.toString(CryptoJS.enc.Utf8))
                     
-                    
+                    */
                 });
 
             });
