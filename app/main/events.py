@@ -39,8 +39,11 @@ def text(message):
     print('data:',data)
     print('cipher:', enc)
     print('plain:',dec)
+    test = os.urandom(2)
+    print('key:', int.from_bytes(test, byteorder='little'))
+    print('key', test)
     
-    emit('enc_msg', {'key': key,
+    emit('enc_msg', {'key': test,
                      'cipher': enc,
                      'iv' : iv,
                     }, room=room)

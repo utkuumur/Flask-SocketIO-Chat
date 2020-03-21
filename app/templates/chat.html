@@ -32,31 +32,51 @@
                 });
 
 
+                function arrayBufferToWordArray(ab) {
+                  var i8a = new Uint8Array(ab);
+                  var a = [];
+                  for (var i = 0; i < i8a.length; i += 4) {
+                    a.push(i8a[i] << 24 | i8a[i + 1] << 16 | i8a[i + 2] << 8 | i8a[i + 3]);
+                  }
+                  return CryptoJS.lib.WordArray.create(a, i8a.length);
+                }
                 socket.on('enc_msg', function(data) {
                     console.log(data)
                     //var wordArray = CryptoJS.lib.WordArray.create(arrayBuffer);
-                    var cipher =  CryptoJS.lib.WordArray.create(data['cipher']);
-                    var key = CryptoJS.lib.WordArray.create(data['key']);
-                    var _iv = CryptoJS.lib.WordArray.create(data['iv']);
+                    var cipher =  data['cipher'];
+                    var key = data['key'];
+                    var iv = data['iv'];
 
 
-                    console.log(cipher)
-                    console.log(key)
+                    var i = new Uint16Array(key)[0];
+                    console.log(i)
+
+
+                    //console.log(cipher)
+                    _cipher = arrayBufferToWordArray(cipher)
+                    _key = arrayBufferToWordArray(key)
+                    console.log(_key)
+                    _iv = arrayBufferToWordArray(iv)
+
+                    console.log(_cipher)
+                    console.log(_key)
                     console.log(_iv)
-
-                    var data = "utku"
+                    /*
                     var key = "0000000000000000"
-                    var iv = "00000000"
 
-                    var _data = CryptoJS.enc.Hex.parse(data);
-                    var _key = CryptoJS.enc.Hex.parse(key);
+                    
+                    var iv = "00000000"
+                    
+                    var _data = byteArrayToWordArray(cipher);
+
+                    var _key = byteArrayToWordArray(key);
                     var _iv = CryptoJS.enc.Hex.parse(iv);
 
 
                     console.log(_data)
                     console.log(_key)
                     console.log(_iv)
-                    /*
+                    
                     encrypted = CryptoJS.AES.encrypt(
                       data, //If I pass WordArray here, chrome frozen, not sure what formate of data should be here. I saw an example using Utf8, but my hex failed to transfer to Utf8 
                       _key,  // pass WordArray
@@ -68,18 +88,16 @@
 
                     console.log(encrypted.ciphertext.toString())
                     
-                                        
+                       */             
                     decrypted = CryptoJS.AES.decrypt(
-                      cipher, //If I pass WordArray here, chrome frozen, not sure what formate of data should be here. I saw an example using Utf8, but my hex failed to transfer to Utf8 
-                      key,  // pass WordArray
-                      {iv: _iv/*, // pass WordArray
-                      mode: CryptoJS.mode.CTR,
-                      padding: CryptoJS.pad.ZeroPadding*//*
+                      _cipher, //If I pass WordArray here, chrome frozen, not sure what formate of data should be here. I saw an example using Utf8, but my hex failed to transfer to Utf8 
+                      _key,  // pass WordArray
+                      {iv: _iv
                      })
 
                     console.log(decrypted.toString(CryptoJS.enc.Utf8))
                     
-                    */
+                    
                 });
 
             });
