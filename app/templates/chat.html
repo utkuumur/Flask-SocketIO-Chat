@@ -41,7 +41,7 @@
                     var _iv = CryptoJS.enc.Hex.parse(iv);
 
                     encrypted = CryptoJS.AES.encrypt(
-                      _data, //If I pass WordArray here, chrome frozen, not sure what formate of data should be here. I saw an example using Utf8, but my hex failed to transfer to Utf8 
+                      data, //If I pass WordArray here, chrome frozen, not sure what formate of data should be here. I saw an example using Utf8, but my hex failed to transfer to Utf8 
                       _key,  // pass WordArray
                       {iv: _iv, // pass WordArray
                        mode: CryptoJS.mode.CTR,
@@ -50,32 +50,19 @@
 
 
                     console.log(encrypted.ciphertext.toString())
-                    /*
+                    
+                    
                     decrypted = CryptoJS.AES.decrypt(
                       encrypted.toString(), //If I pass WordArray here, chrome frozen, not sure what formate of data should be here. I saw an example using Utf8, but my hex failed to transfer to Utf8 
                       _key,  // pass WordArray
                       {iv: _iv, // pass WordArray
-                       mode: CryptoJS.mode.CTR,
-                       padding: CryptoJS.pad.ZeroPadding
+                      mode: CryptoJS.mode.CTR,
+                      padding: CryptoJS.pad.ZeroPadding
                      })
-                    */
-                    //console.log(decrypted.toString(CryptoJS.enc.Utf8));
-                    /*
-                    //var aes_options = { iv: '0000', mode: CryptoJS.mode.CTR, padding: CryptoJS.pad.Pkcs7};
-                    //var encrypted = CryptoJS.AES.encrypt(myString, key, aes_options).toString();
-                    //var encrypted = CryptoJS.AES.encrypt(myString, myPassword);
-                    // Decrypt
-                    //var bytes  = CryptoJS.AES.decrypt(encrypted, key, aes_options);
-                    //var originalText = bytes.toString(CryptoJS.enc.Utf8);
-                    console.log(decrypted.toString(CryptoJS.enc.Utf8)); //
-                    */
-                    //console.log(originalText); // 'my message'
 
-
-                    /*$('#chat').val($('#chat').val() + encrypted + '\n');                  
-                    $('#chat').scrollTop($('#chat')[0].scrollHeight);
-                    $('#chat').val($('#chat').val() + originalText + '\n');                  
-                    $('#chat').scrollTop($('#chat')[0].scrollHeight);*/
+                    console.log(decrypted.toString(CryptoJS.enc.Utf8))
+                    
+                    
                 });
 
             });
