@@ -4,10 +4,11 @@
         <script type="text/javascript" src="//code.jquery.com/jquery-1.4.2.min.js"></script>
         <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/aes.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/hmac-sha256.js"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/components/mode-ctr.js"></script>
         <script src="https://cdn.rawgit.com/CryptoStore/crypto-js/3.1.2/build/components/mode-cfb-min.js"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/components/pad-zeropadding.js"></script>
-        <script src="http://crypto-js.googlecode.com/svn/tags/3.1/build/components/lib-typedarrays.js"></script>
+
         <script type="text/javascript" charset="utf-8">
             var socket;
             $(document).ready(function(){
@@ -23,6 +24,9 @@
 
                 var key = CryptoJS.enc.Utf8.parse('1234567890123456');
                 var hmacKey = CryptoJS.enc.Utf8.parse('1234567890123456');                    
+
+
+
 
                 function decrypt(ciphertextStr, key) {
                     var ciphertext = CryptoJS.enc.Base64.parse(ciphertextStr);
@@ -41,6 +45,25 @@
                     return decrypted.toString(CryptoJS.enc.Utf8);
                 }
 
+                 function decrypt_verify(msg, key1, key2) {
+                    var text = CryptoJS.enc.Base64.parse(msg);
+
+                    var iv = ciphertext.clone();
+                    iv.sigBytes = 16;
+                    iv.clamp();
+                    ciphertext.words.splice(0, 4); // delete 4 words = 16 bytes
+                    ciphertext.sigBytes -= 16;
+                }
+
+                function encrypt(msgString, key) {
+                    // msgString is expected to be Utf8 encoded
+                    var iv = CryptoJS.lib.WordArray.random(16);
+                    var encrypted = CryptoJS.AES.encrypt(msgString, key, {
+                        iv: iv
+                    });
+                    return iv.concat(encrypted.ciphertext).toString(CryptoJS.enc.Base64);
+                }
+
                 function encrypt_sign(msgString, key1, key2) {
                     // msgString is expected to be Utf8 encoded
                     var iv = CryptoJS.lib.WordArray.random(16);
@@ -55,26 +78,42 @@
                     //return iv.concat(encrypted.ciphertext).toString(CryptoJS.enc.Base64);
                 }
 
+                function verify_mac(ciphertextStr, macStr, hmacKey) {
+                    var ciphertext = CryptoJS.enc.Base64.parse(ciphertextStr);
+                    var mac = CryptoJS.enc.Base64.parse(macStr);
 
+                    var hash = CryptoJS.HmacSHA256(CryptoJS.enc.Hex.parse(ciphertext), hmacKey);
+                    console.log(mac,hash);
+
+                    return true;
+
+               }
 
                 $('#text').keypress(function(e) {
                     var code = e.keyCode || e.which;
                     if (code == 13) {
                         text = $('#text').val();
                         $('#text').val('');
-                        socket.emit('text', {msg: encrypt(text,key)});
+                        socket.emit('text', {msg: encrypt_sign(text,key,hmacKey)});
                     }
                 });
 
                 socket.on('message', function(data) {
                     var cipher =  data['cipher'];
-                    //var key = data['key'];
-                    //key = CryptoJS.enc.Hex.parse(data['key'])
-                    dec = decrypt(cipher,key)
+                    var mac =  data['mac'];
 
-                    $('#chat').val($('#chat').val() + data.msg + ':'+ dec + '\n');
-                    $('#chat').scrollTop($('#chat')[0].scrollHeight);
-                    console.log(dec)
+                    console.log(cipher)
+                    console.log(mac)
+                    if (verify_mac(cipher,mac, hmacKey)) {
+                        console.log('okay')
+                        dec = decrypt(cipher,key)
+                        $('#chat').val($('#chat').val() + data.msg + ':'+ dec + '\n');
+                        $('#chat').scrollTop($('#chat')[0].scrollHeight);
+                        console.log(dec)
+                    }
+                   
+
+                    
                 });
 
             });
