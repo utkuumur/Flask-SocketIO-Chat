@@ -1,12 +1,7 @@
 from flask import session
 from flask_socketio import emit, join_room, leave_room
-from flask_common.crypto import (
-    AuthenticationError,
-    EncryptionError,
-    aes_decrypt,
-    aes_encrypt,
-    aes_generate_key,
-)
+import random
+from Crypto.Cipher import AES
 from .. import socketio
 
 
@@ -18,33 +13,34 @@ def joined(message):
     join_room(room)
     emit('status', {'msg': session.get('name') + ' has entered the room.'}, room=room)
 
-def aes_encrypt():
-    key = ''.join(chr(random.randint(0, 0xFF)) for i in range(16))
-    print 'key', [x for x in key]
-    iv = ''.join([chr(random.randint(0, 0xFF)) for i in range(16)])
+def aes_encrypt(key, data, iv):
     aes = AES.new(key, AES.MODE_CBC, iv)
-    data = 'hello world 1234' # <- 16 bytes
     encd = aes.encrypt(data)
     return encd
 
-def aes_decrypt(key, encd, iv):
+def aes_decrypt(key, data, iv):
     aes = AES.new(key, AES.MODE_CBC, iv)
-    decd = aes.decrypt(encd)
+    decd = aes.decrypt(data)
     return decd
 
 @socketio.on('text', namespace='/chat')
 def text(message):
-    print(aes_encrypt())
+    key = ''.join(chr(random.randint(0, 0xFF)) for i in range(16))
+    iv = ''.join([chr(random.randint(0, 0xFF)) for i in range(16)])
+    data = 'hello world 1234' # <- 16 bytes
+
+    enc = aes_encrypt(key,data,iv)
+    dec = aes_decrypt(key,enc,iv)
+
+    print('data:',data)
+    print('cipher:', enc)
+    print('plain:',dec)
     """Sent by a client when the user entered a new message.
     The message is sent to all people in the room."""
     room = session.get('room')
-    #key = aes_generate_key()
-    key = b'utkuumurutkuumurutkuumurutkuumurutkuumurutkuumurutkuumurutkuumur'
-    print('len:',len(key))
-    print('key:',key)
-    enc_msg = aes_encrypt(key, b'test')
-    emit('enc_msg', {'msg': enc_msg}, room=room)
-    emit('message', {'msg': session.get('name') + ':' + message['msg']}, room=room)
+
+
+    
 
 # Encrypt + sign using provided IV.
 # Note: You should normally use aes_encrypt().
