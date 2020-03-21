@@ -3,6 +3,9 @@
         <title>Flask-SocketIO-Chat: {{ room }}</title>
         <script type="text/javascript" src="//code.jquery.com/jquery-1.4.2.min.js"></script>
         <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/aes.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/components/mode-ctr.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/components/pad-zeropadding.js"></script>
         <script type="text/javascript" charset="utf-8">
             var socket;
             $(document).ready(function(){
@@ -15,8 +18,8 @@
                     $('#chat').scrollTop($('#chat')[0].scrollHeight);
                 });
                 socket.on('message', function(data) {
-                    $('#chat').val($('#chat').val() + data.msg + '\n');
-                    $('#chat').scrollTop($('#chat')[0].scrollHeight);
+                    //$('#chat').val($('#chat').val() + data.msg + '\n');
+                    //$('#chat').scrollTop($('#chat')[0].scrollHeight);
                 });
                 $('#text').keypress(function(e) {
                     var code = e.keyCode || e.which;
@@ -26,6 +29,55 @@
                         socket.emit('text', {msg: text});
                     }
                 });
+
+
+                socket.on('enc_msg', function(data) {
+                    var data = "utku"
+                    var key = "0000000000000000"
+                    var iv = "00000000"
+
+                    var _data = CryptoJS.enc.Hex.parse(data);
+                    var _key = CryptoJS.enc.Hex.parse(key);
+                    var _iv = CryptoJS.enc.Hex.parse(iv);
+
+                    encrypted = CryptoJS.AES.encrypt(
+                      _data, //If I pass WordArray here, chrome frozen, not sure what formate of data should be here. I saw an example using Utf8, but my hex failed to transfer to Utf8 
+                      _key,  // pass WordArray
+                      {iv: _iv, // pass WordArray
+                       mode: CryptoJS.mode.CTR,
+                       padding: CryptoJS.pad.ZeroPadding
+                     })
+
+
+                    console.log(encrypted.ciphertext.toString())
+                    /*
+                    decrypted = CryptoJS.AES.decrypt(
+                      encrypted.toString(), //If I pass WordArray here, chrome frozen, not sure what formate of data should be here. I saw an example using Utf8, but my hex failed to transfer to Utf8 
+                      _key,  // pass WordArray
+                      {iv: _iv, // pass WordArray
+                       mode: CryptoJS.mode.CTR,
+                       padding: CryptoJS.pad.ZeroPadding
+                     })
+                    */
+                    //console.log(decrypted.toString(CryptoJS.enc.Utf8));
+                    /*
+                    //var aes_options = { iv: '0000', mode: CryptoJS.mode.CTR, padding: CryptoJS.pad.Pkcs7};
+                    //var encrypted = CryptoJS.AES.encrypt(myString, key, aes_options).toString();
+                    //var encrypted = CryptoJS.AES.encrypt(myString, myPassword);
+                    // Decrypt
+                    //var bytes  = CryptoJS.AES.decrypt(encrypted, key, aes_options);
+                    //var originalText = bytes.toString(CryptoJS.enc.Utf8);
+                    console.log(decrypted.toString(CryptoJS.enc.Utf8)); //
+                    */
+                    //console.log(originalText); // 'my message'
+
+
+                    /*$('#chat').val($('#chat').val() + encrypted + '\n');                  
+                    $('#chat').scrollTop($('#chat')[0].scrollHeight);
+                    $('#chat').val($('#chat').val() + originalText + '\n');                  
+                    $('#chat').scrollTop($('#chat')[0].scrollHeight);*/
+                });
+
             });
             function leave_room() {
                 socket.emit('left', {}, function() {
